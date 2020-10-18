@@ -1,0 +1,38 @@
+Status: wip (problem installing/starting tomcat)
+
+Section 3: Integrating Tomcat server win CI/CD pipeline
+
+Plugins:
+    Deploy to container
+    maven integration 
+    maven invoker 
+
+
+            
+Jenkins Credentials Provider: Jenkins
+Add Credentials
+    Kind: Username with password 
+    Username: deployer 
+    Password:  <from /opt/tomcat/conf/tomcat-users.xml, username="deployer">
+    ID: deployer_user
+
+New Item
+    Name: Deploy_On_Tomcat_Server
+    Type: maven project
+
+Source Code Management
+    Git
+        Repository URL: https://github.com/renegmed/hello-world.git 
+Build:
+    Root POM: pom.xml 
+    Goals and options: clean install package 
+    
+Add post-build action:
+    Deploy war/ear to a container
+        WAR/EAR file **/*.war 
+        Containers  Tomcat 8.x 
+          Credentials: deployer (cat /opt/tomcat/conf/tomcat-users.xml, username="deployer")
+          Tomcat URL: http://xx.xx.xxx.xx:8080/
+
+
+    

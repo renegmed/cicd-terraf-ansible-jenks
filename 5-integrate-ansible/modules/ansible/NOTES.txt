@@ -1,0 +1,89 @@
+
+
+ssh-copy-id ansadmin@<target-server>
+
+ssh-copy-id ansadmin@localhost
+ssh-copy-id dockeradmin@<docker-host ip addr>
+
+==================================================
+cat > create-simple-devops-image.yml
+---
+- hosts: all
+  become: false
+
+  tasks:
+  - name: create docker image using war file
+    command: docker build -t simple-devops-image:latest .
+    args:
+      chdir: /opt/docker
+
+  - name: create tag to image
+    command: docker tag simple-devops-image renegmedal/simple-devops-image
+
+  - name: push image on to dockerhub
+    command: docker push renegmedal/simple-devops-image
+
+  - name: remove docker images form ansible server
+    command: docker rmi simple-devops-image:latest renegmedal/simple-devops-image
+    ignore_errors: yes
+
+
+
+==================================================
+cat > create-simple-devops-project.yml
+---
+- hosts: all
+  become: true
+  tasks:
+  - name: stop if we have old docker container
+    command: docker stop simple-devops-container
+    ignore_errors: yes
+
+  - name: remove stopped docker container
+    command: docker rm simple-devops-container
+    ignore_errors: yes
+
+  - name: remove current docker image
+    command: docker rmi renegmedal/simple-devops-image:latest
+    ignore_errors: yes 
+
+  - name: pull docker image from dockerhub
+    command: docker pull renegmedal/simple-devops-image:latest 
+
+  - name: create container using simple-devops-image
+    command: docker run -d --name simple-devops-container -p 8080:8080 renegmedal/simple-devops-image:latest
+
+==================================================
+opt/docker$> cat > hosts 
+localhost ansible_user=ansadmin 
+<docker-server address using $>ip addr at eth0>
+
+
+$> ansible -i hosts -m ping all -vvv
+
+==================================================
+cat > Dockerfile
+FROM tomcat:latest
+  
+COPY ./webapp.war /usr/local/tomcat/webapps
+
+
+==================================================
+Limit ansible to specific system
+
+opt/docker$> ansible-playbook -i hosts create-simple-devops-image.yml --limit localhost --check 
+
+opt/docker$> ansible-playbook -i hosts create-simple-devops-image.yml --limit <docker-server address using $>ip addr at eth0> --check 
+
+==================================================
+
+
+ssh -i ~/.aws/kuber-k-p ubuntu@<ansible-server ec2 ip>
+sudo su - ansadmin
+
+ubuntu$> sudo su - ansadmin
+ansadmin$> cd /opt
+ansadmin$> sudo mkdir docker 
+ansadmin$> sudo chown -R ansadmin:ansadmin /opt/docker
+
+

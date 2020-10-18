@@ -1,0 +1,46 @@
+
+Create Job 
+    Name: My_First_Job
+    Type: Freestyle project
+
+    Decription: My First Job
+
+    Source Code Management
+        None 
+
+    Build:
+        Execute shell
+            Command:  echo "Welcome to DevOps"
+
+Install Plugin:
+    Maven Invoker 
+    Maven Integrtion 
+    Publish Over SSH 
+
+Manage Jenkins -> Global Too Configutation 
+    Maven 
+        Name: M2
+        Maven Home:  /usr/share/maven   (for other aws linux, /opt/maven)
+
+    Note: Install automatically option should not be checked 
+
+New Item 
+    Name: My_First_Maven_Build 
+    Type: Maven Project 
+    Description: First Maven Build 
+    Source Code Management:
+        Git
+            Repository URL: https://github.com/renegmed/hello-world.git 
+    Build
+        Root POM pom.xml
+        Goals and options: clean install package 
+
+
+NOTE: path to jenkins Home
+        /var/lib/jenkins
+    for jobs:
+        /var/lib/jenkins/workspaces
+    
+
+
+    

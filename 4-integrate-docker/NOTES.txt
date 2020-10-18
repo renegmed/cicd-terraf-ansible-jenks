@@ -1,0 +1,5 @@
+Status: wip 
+
+Section 4: Integrating Docker in CI/CD pipeline 
+
+
