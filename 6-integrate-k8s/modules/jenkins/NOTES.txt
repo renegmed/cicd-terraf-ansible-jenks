@@ -1,0 +1,135 @@
+ 
+Install Plugin:
+    Maven Invoker 
+    Maven Integration 
+    Publish Over SSH 
+
+--------------------------------------------------------------
+Manage Jenkins -> Global Tool Configutation 
+    Maven 
+        Name: M2
+        Maven Home:  /usr/share/maven   (for other aws linux, /opt/maven)
+
+    Note: Install automatically option should not be checked 
+
+----------------------------------------------------
+Configure System - 
+    Publish Over SSH
+        Add SSH Server 
+            Name: docker-host
+            Hostname: <docker ip addr>
+            Username: dockeradmin 
+            CHECK Use password authentication, or use different key 
+            Passphrase/password: xxxxxx
+
+--------------------------------------------------------------
+Ansible server 
+
+Configure System -> Publish Over SSH
+    Passphrase
+    SSH Servers (add)
+        Name:       ansible-server
+        Hostname    <from ansible-server command line ec2 private ip addr because the same vpc>
+        Username    ansadmin
+        checked Use password authentication or use a different key 
+        Passphrase/Password     password123  
+
+============================================
+Create Job
+    Name Deploy_on_Kubernetes_CD
+    Type: Freestyle project 
+    Post-build Actions  
+        Send build artifacts over SSH 
+            SSH Server: ansible-server  
+                Transfer 
+                    Exec command 
+                        ansible-playbook -i /opt/kubernetes/hosts /opt/kubernetes/kubernetes-valaxy-deployment.yml;
+                        ansible-playbook -i /opt/kubernetes/hosts /opt/kubernetes/kubernetes-valaxy-service.yml;
+
+============================================
+
+Create Job
+    Name: Deploy_on_Docker_Container_using_Ansible_playbooks     
+    type: Maven project 
+    Description: Deploy on Docker Container using Ansible 
+
+    Source Code Management 
+        Git
+        Repository URL: https://github.com/renegmed/hello-world.git 
+    Build Triggers:
+        checked - Build whenver a SNAPSHOT dependency is built 
+        Poll SCM 
+            Schedule * * * * *
+
+    Build
+        Root POM: pom.xml
+        Goals and options: clean install package
+
+    Post-build Actions:
+        Send build artifacts over SSH 
+            SSH Publishers:
+                SSH Server 
+                    Name: ansible-server 
+                    Transfers:
+                        Transfer Set 
+                            Source files: webapp/target/*.war 
+                            Remove prefix: webapp/target
+                            Remote directory: //opt//kubernetes
+                            Exec command:
+                                ansible-playbook -i /opt/kubernetes/hosts /opt/kubernetes/create-simple-devops-image.yml;
+                                ansible-playbook -i /opt/kubernetes/hosts /opt/kubernetes/create-simple-devops-project.yml;  <docker-server ip addr>
+
+    Build Other project
+        Projects to build Deploy_on_Kubernetes_CD
+        
+============================================
+
+Clear kubectl deployment and service
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+============================================
+
+Create Job 
+    Name: Deploy_on_Container_using_ansible
+    Type: Maven project 
+    Source Management:
+        Git:
+            Repository URL: https://github.com/renegmed/hello-world.git 
+           Build Triggers:
+    Build whenever a SNAPSHOT dependency is built 
+Build:
+
+    Root POM  pom.xml
+    Goals and options:  clean install package
+
+    Post-build Actions:
+        Send build artifacts over SSH 
+            SSH Publishers:
+                SSH Server 
+                    Name: ansible-server 
+                    Transfers:
+                        Transfer Set 
+                            Source files: webapp/target/*.war 
+                            Remove prefix: webapp/target
+                            Remote directory: //opt//docker
+                        
+
+
+10.0.103.40

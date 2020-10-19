@@ -33,17 +33,16 @@ docker --version
 sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
 sudo service sshd reload
 
-sudo mkdir /opt/docker
-sudo chown -R ${ANSIBLE_USER}:${ANSIBLE_USER} /opt/docker
+sudo mkdir /opt/kubernetes
+sudo chown -R ${ANSIBLE_USER}:${ANSIBLE_USER} /opt/kubernetes
 
 mkdir /home/${ANSIBLE_USER}/.ssh
 ssh-keygen -b 2048 -t rsa -f /home/${ANSIBLE_USER}/.ssh/id_rsa -P "" -q
 sudo chown -R ${ANSIBLE_USER}:${ANSIBLE_USER} /home/${ANSIBLE_USER}/.ssh/
 
 # TODO
-# ssh-keygen
 # ssh-copy-id ${ANSIBLE_USER}@localhost
-# ssh-copy-id dockeradmin@<docker-host ip addr>
+# ssh-copy-id ubuntu@<docker-host ip addr>
 
  
  

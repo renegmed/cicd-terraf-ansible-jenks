@@ -1,0 +1,164 @@
+
+0.
+
+####  sudo su - k8sadmin
+
+1. Access Key ID and Secret Access Key are not required. Only region
+
+k8sadmin@ip-10-0-103-226:~$ aws configure
+AWS Access Key ID [None]: 
+AWS Secret Access Key [None]: 
+Default region name [None]: us-east-1
+Default output format [None]: 
+
+2. Route53 - create private hosted zone 
+    goldmedal.tech 
+    vpc - vpc-dev
+
+3. Create s3 bucket (pre-created)
+    k8s.goldmedal.tech
+ 
+x 4.  (script not working, doing manually)
+    export KOPS_STATE_STORE=s3://k8s.goldmedal.tech
+
+5. 
+    ssh-keygen
+    /.ssh/id_rsa 
+
+6. create cluster (not in script)
+
+    k8sadmin@ip-10-0-103-226:~$ kops create cluster --cloud=aws --zones=us-east-1a --name=k8s.goldmedal.tech --dns-zone=goldmedal.tech --dns private 
+
+    Response:
+
+    Cluster configuration has been created.
+
+    Suggestions:
+     * list clusters with: kops get cluster
+     * edit this cluster with: kops edit cluster k8s.goldmedal.tech
+     * edit your node instance group: kops edit ig --name=k8s.goldmedal.tech nodes
+     * edit your master instance group: kops edit ig --name=k8s.goldmedal.tech master-us-east-1a
+
+    Finally configure your cluster with: kops update cluster --name k8s.goldmedal.tech --yes
+
+    k8sadmin@ip-10-0-103-226:~$ kops edit ig --name=k8s.goldmedal.tech master-us-east-1a  (change machine type to t2.micro)
+    k8sadmin@ip-10-0-103-226:~$ kops kops edit ig --name=k8s.goldmedal.tech nodes  (change machine type to t2.micro)
+
+    k8sadmin@ip-10-0-103-226:~$ kops get cluster
+    NAME                    CLOUD   ZONES
+    k8s.goldmedal.tech      aws     us-east-1a
+
+    k8sadmin@ip-10-0-103-226:~$ kops update cluster --name k8s.goldmedal.tech --yes
+
+    Suggestions:
+     * validate cluster: kops validate cluster --wait 10m
+     * list nodes: kubectl get nodes --show-labels
+     * ssh to the master: ssh -i ~/.ssh/id_rsa ubuntu@api.k8s.goldmedal.tech
+     * the ubuntu user is specific to Ubuntu. If not using Ubuntu please use the appropriate user based on your OS.
+     * read about installing addons at: https://kops.sigs.k8s.io/operations/addons.
+
+
+    k8sadmin@ip-10-0-103-226:~$ kops validate cluster --wait 10m
+
+
+7. Login into API
+
+    k8sadmin@ip-10-0-103-226:~$ ssh -i ~/.ssh/id_rsa ubuntu@api.k8s.goldmedal.tech
+    
+    k8sadmin@ip-10-0-103-226:~$ kubectl get nodes
+    NAME                            STATUS   ROLES    AGE     VERSION
+    ip-172-20-51-125.ec2.internal   Ready    node     3m32s   v1.18.9
+    ip-172-20-60-149.ec2.internal   Ready    node     3m21s   v1.18.9
+    ip-172-20-61-42.ec2.internal    Ready    master   6m27s   v1.18.9
+
+
+    No need to upgrade kubectl version
+
+    k8sadmin@ip-10-0-103-226:~$ kubectl version --short
+    Client Version: v1.18.9
+    Server Version: v1.18.9
+
+8. Create k8s manifests
+
+----------------------------------------------------------------- 
+$> cat > valaxy-deploy.yml 
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: valaxy-deployment
+spec:
+  selector:
+    matchLabels:
+      app: valaxy-devops-project
+  replicas: 2 # tells deployment to run 2 pods matching the template
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+
+  template:
+    metadata:
+      labels:
+        app: valaxy-devops-project
+    spec:
+      containers:
+      - name: valaxy-devops-project
+        image: renegmedal/simple-devops-image
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+^C 
+----------------------------------------------------------------- 
+$> cat > valaxy-service.yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: valaxy-service
+  labels:
+    app: valaxy-devops-project
+spec:
+  selector:
+    app: valaxy-devops-project
+  type: LoadBalancer
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 31200
+
+-----------------------------------------------------------------    
+
+
+Delete cluster
+$> kops get cluster
+$> kops delete cluster --name=k8s.goldmedal.tech --state=s3://k8s.goldmedal.tech --yes 
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Integrating Kubernetes cluster with Ansible 
+
+Login to Ansible server copy public key onto kuberenetes cluster master account
+
+1. Append Ansible server's id_rsa.pub token to Kubernetes master ssh authorized keys
+  
+  ssh -i ~/.ssh/id_rsa ubuntu@api.k8s.goldmedal.tech
+  
+  sudo su -
+  
+  root@ip-10-0-103-226:~$ cat >> ~/.ssh/authorized_keys  
+  <ansible id_rsa.pub token>
+
+ 
+Before call playbook, delete deployment and service
+
+$ kubectl delete deployment.apps/valaxy-deployment
+$ kubectl delete service/valaxy-service
+
+
+PROBLEM:
+sudo su -
+root@ip-172-20-56-251:~# kubectl get all
+The connection to the server localhost:8080 was refused - did you specify the right host or port?
+
+SOLUTION
+mkdir ~/.kube 
+cp /home/ubuntu/.kube/config ~/.kube

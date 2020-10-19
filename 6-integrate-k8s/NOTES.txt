@@ -1,0 +1,25 @@
+Status: wip 
+
+Section 6: Integrting ansible in CI/CD pipeline 
+
+
+http://54.84.37.175:8080/webapp/
+
+NOTE: 
+    54.84.37.175 is the ansible-server public ip address 
+
+
+Error 
+
+become: false 
+
+otherwise we get all error on pushing image to docker hub
+
+TASK [push image on to dockerhub] **************************************************************************
+fatal: [localhost]: FAILED! => {"changed": true, "cmd": ["docker", "push", "renegmedal/simple-devops-image"], 
+    "delta": "0:00:00.186265", "end": "2020-10-16 20:15:29.821536", "msg": "non-zero return code", "rc": 1, 
+    "start": "2020-10-16 20:15:29.635271", "stderr": "denied: requested access to the resource is denied", 
+    "stderr_lines": ["denied: requested access to the resource is denied"], 
+    "stdout": "The push refers to repository [docker.io/renegmedal/simple-devops-image]\n0eb3cac93d2c: 
+        ..........
+        

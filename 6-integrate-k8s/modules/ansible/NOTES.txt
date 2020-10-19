@@ -1,0 +1,113 @@
+
+
+ssh-copy-id ansadmin@<target-server>
+
+ssh-copy-id ansadmin@localhost
+ssh-copy-id ubuntu@<k8s master ip addr>  
+    
+$> ansible -i hosts -m ping all -vvv
+ 
+ 
+ssh -i ~/.aws/kuber-k-p ubuntu@<ansible-server ec2 ip>
+sudo su - ansadmin 
+
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Integrating Kubernetes cluster with Ansible 
+ 
+Login to Ansible server copy public key onto kuberenetes cluster master account
+
+1. 
+  Generate new rsa 
+  
+  ansadmin$> ssh-keygen
+  
+  ssh-copy-id ansadmin@localhost
+
+  ansadmin$> cat ~/.ssh/id_rsa.pub 
+  Copy and append token to kubernetes master  ~/.ssh/authorized_keys 
+
+2. Verify connectivity 
+
+  ssh -i ~/.ssh/id_rsa ubuntu@<k8s master ec2 public ip address>
+
+
+Update hosts file with new group called kubernetes and add Kubernetes master in it
+
+1. 
+  ansadmin@ip-10-0-102-75:~$ sudo mkdir /opt/kubernetes
+  sudo chown -R ansadmin:ansadmin /opt/kubernetes/
+2.  
+  ansadmin@ip-10-0-102-75:~$ cd /opt/kubernetes
+  cat > hosts
+[ansible-server]
+localhost 
+
+[kubernetes]
+34.234.175.2   <k8s master ec2 public ip address>
+
+
+Create ansible playbooks to create deployment and services 
+
+1. deployment
+cat > kubernetes-valaxy-deployment.yml 
+---
+- name: Create pods using deployment 
+  hosts: kubernetes 
+  become: false
+  user: ubuntu
+ 
+  tasks: 
+  - name: create a deployment
+    command: kubectl apply -f valaxy-deploy.yml
+ 
+  - name: update deployment with new pods if image updated in docker hub
+    command: kubectl rollout restart deployment.v1.apps/valaxy-deployment
+
+2. service 
+cat > kubernetes-valaxy-service.yml
+---
+- name: create service for deployment
+  hosts: kubernetes
+  become: false
+  user: ubuntu
+
+  tasks:
+  - name: create a service
+    command: kubectl apply -f valaxy-service.yml
+
+
+
+/opt/kubernetes$> ansible-playbook -i hosts kubernetes-valaxy-deployment.yml --check 
+
+/opt/kubernetes$> ansible-playbook -i hosts kubernetes-valaxy-service.yml --check
+
+
+==================================================
+cat > create-simple-devops-image.yml
+---
+- hosts: ansible-server
+  become: false
+  tasks:
+  - name: create docker image using war file
+    command: docker build -t simple-devops-image:latest .
+    args:
+      chdir: /opt/kubernetes 
+
+  - name: create tag to image
+    command: docker tag simple-devops-image renegmedal/simple-devops-image
+ 
+  - name: push image on to dockerhub
+    command: docker push renegmedal/simple-devops-image:latest
+ 
+  - name: remove docker images from ansible server
+    command: docker rmi simple-devops-image:latest renegmedal/simple-devops-image 
+    ignore_errors: yes
+=======================================================
+cat > Dockerfile
+FROM tomcat:latest
+  
+COPY ./webapp.war /usr/local/tomcat/webapps
+
+=======================================================
+
